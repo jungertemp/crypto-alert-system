@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-CryptoAlert.Dispatcher-2261cad8-6989-4174-9820-1ed62778203f</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\shared\CryptoAlert.Contracts\CryptoAlert.Contracts.csproj" />
+    <ProjectReference Include="..\..\shared\CryptoAlert.SharedKernel\CryptoAlert.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>
