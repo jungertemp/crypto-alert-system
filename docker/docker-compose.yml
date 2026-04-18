@@ -4,17 +4,20 @@ services:
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
     platform: linux/amd64
-    container_name: cryptoalert-mssql
-
     environment:
       ACCEPT_EULA: "Y"
       SA_PASSWORD: "Your_password123!"
-
     ports:
       - "1433:1433"
-
     volumes:
       - mssql_data:/var/opt/mssql
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: cryptoalert-rabbitmq
+    ports:
+      - "5672:5672"   # app connection
+      - "15672:15672" # UI
 
 volumes:
   mssql_data:
