@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using CryptoAlert.Contracts.Events;
+using CryptoAlert.Database.Entities;
 using CryptoAlert.Notifications.Services;
 using CryptoAlert.PriceCollector.Options;
 using Microsoft.Extensions.Options;
@@ -13,7 +14,7 @@ public class NotificationWorker : BackgroundService
 {
     private readonly ILogger<NotificationWorker> _logger;
     private readonly RabbitMqOptions _options;
-    private readonly IAlertEvaluationService _alertEvaluationService;
+    private readonly IServiceProvider _serviceProvider;
 
     private IConnection? _connection;
     private IChannel? _channel;
@@ -21,11 +22,11 @@ public class NotificationWorker : BackgroundService
     public NotificationWorker(
         ILogger<NotificationWorker> logger,
         IOptions<RabbitMqOptions> options,
-        IAlertEvaluationService alertEvaluationService)
+        IServiceProvider serviceProvider)
     {
         _logger = logger;
         _options = options.Value;
-        _alertEvaluationService = alertEvaluationService;
+        _serviceProvider = serviceProvider;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -38,7 +39,6 @@ public class NotificationWorker : BackgroundService
         _connection = await factory.CreateConnectionAsync(stoppingToken);
         _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
 
-        // declare exchange
         await _channel.ExchangeDeclareAsync(
             exchange: _options.ExchangeName,
             type: _options.ExchangeType,
@@ -46,7 +46,6 @@ public class NotificationWorker : BackgroundService
             autoDelete: false,
             cancellationToken: stoppingToken);
 
-        // declare queue
         await _channel.QueueDeclareAsync(
             queue: _options.QueueName,
             durable: true,
@@ -54,7 +53,6 @@ public class NotificationWorker : BackgroundService
             autoDelete: false,
             cancellationToken: stoppingToken);
 
-        // bind queue to exchange
         await _channel.QueueBindAsync(
             queue: _options.QueueName,
             exchange: _options.ExchangeName,
@@ -63,7 +61,7 @@ public class NotificationWorker : BackgroundService
 
         var consumer = new AsyncEventingBasicConsumer(_channel);
 
-        consumer.ReceivedAsync += async (sender, ea) =>
+        consumer.ReceivedAsync += async (_, ea) =>
         {
             try
             {
@@ -74,7 +72,7 @@ public class NotificationWorker : BackgroundService
 
                 if (message is null)
                 {
-                    _logger.LogWarning("Failed to deserialize message");
+                    _logger.LogWarning("Failed to deserialize PriceUpdatedEvent");
                     return;
                 }
 
@@ -86,7 +84,20 @@ public class NotificationWorker : BackgroundService
                 if (stoppingToken.IsCancellationRequested)
                     return;
 
-                await _alertEvaluationService.EvaluateAsync(message, stoppingToken);
+                using var scope = _serviceProvider.CreateScope();
+                var priceHistoryService = scope.ServiceProvider.GetRequiredService<IPriceHistoryService>();
+                var alertEvaluationService = scope.ServiceProvider.GetRequiredService<IAlertEvaluationService>();
+
+                await priceHistoryService.SaveAsync(new PriceHistory
+                {
+                    AssetId = message.AssetId,
+                    Symbol = message.Symbol,
+                    Price = message.Price,
+                    Currency = message.Currency,
+                    CapturedAt = message.CheckedAt
+                }, stoppingToken);
+
+                await alertEvaluationService.EvaluateAsync(message, stoppingToken);
             }
             catch (Exception ex)
             {

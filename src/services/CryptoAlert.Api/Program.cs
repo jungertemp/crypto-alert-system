@@ -6,7 +6,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<CryptoAlertDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 builder.Services.AddScoped<IAlertService, AlertService>();
+builder.Services.AddScoped<IPriceHistoryQueryService, PriceHistoryQueryService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
