@@ -51,6 +51,7 @@ public class AlertService : IAlertService
     public async Task<IReadOnlyCollection<AlertResponse>> GetAllAsync(CancellationToken cancellationToken)
     {
         var collection = await _dbContext.PriceAlerts
+            .Where(x => x.IsActive)
             .Select(x => new AlertResponse
             {
                 Id = x.Id,

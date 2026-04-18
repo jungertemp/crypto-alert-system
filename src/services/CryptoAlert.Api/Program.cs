@@ -1,3 +1,4 @@
+using CryptoAlert.Api.Services;
 using CryptoAlert.Database;
 using Microsoft.EntityFrameworkCore;
 
@@ -5,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<CryptoAlertDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IAlertService, AlertService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
