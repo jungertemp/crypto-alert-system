@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using CryptoAlert.Contracts.Events;
+using CryptoAlert.Notifications.Services;
 using CryptoAlert.PriceCollector.Options;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
@@ -12,16 +13,19 @@ public class NotificationWorker : BackgroundService
 {
     private readonly ILogger<NotificationWorker> _logger;
     private readonly RabbitMqOptions _options;
+    private readonly IAlertEvaluationService _alertEvaluationService;
 
     private IConnection? _connection;
     private IChannel? _channel;
 
     public NotificationWorker(
         ILogger<NotificationWorker> logger,
-        IOptions<RabbitMqOptions> options)
+        IOptions<RabbitMqOptions> options,
+        IAlertEvaluationService alertEvaluationService)
     {
         _logger = logger;
         _options = options.Value;
+        _alertEvaluationService = alertEvaluationService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -68,10 +72,21 @@ public class NotificationWorker : BackgroundService
 
                 var message = JsonSerializer.Deserialize<PriceUpdatedEvent>(json);
 
+                if (message is null)
+                {
+                    _logger.LogWarning("Failed to deserialize message");
+                    return;
+                }
+
                 _logger.LogInformation(
                     "Received price update: {Symbol} = {Price}",
-                    message?.Symbol,
-                    message?.Price);
+                    message.Symbol,
+                    message.Price);
+
+                if (stoppingToken.IsCancellationRequested)
+                    return;
+
+                await _alertEvaluationService.EvaluateAsync(message, stoppingToken);
             }
             catch (Exception ex)
             {
