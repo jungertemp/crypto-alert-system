@@ -12,6 +12,7 @@ public class PriceAlert
     public decimal TargetPrice { get; set; }
     public AlertConditionType ConditionType { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool IsTriggered { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 

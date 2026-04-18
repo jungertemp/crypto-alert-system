@@ -1,7 +1,6 @@
 using CryptoAlert.Contracts.Events;
 using CryptoAlert.Database;
 using CryptoAlert.SharedKernel.Enums;
-
 using Microsoft.EntityFrameworkCore;
 
 namespace CryptoAlert.Notifications.Services;
@@ -22,14 +21,7 @@ public class AlertEvaluationService : IAlertEvaluationService
     public async Task EvaluateAsync(PriceUpdatedEvent message, CancellationToken cancellationToken)
     {
         var activeAlerts = await _dbContext.PriceAlerts
-            .AsNoTracking()
             .Where(pa => pa.Symbol == message.Symbol && pa.IsActive)
-            .Select(pa => new
-            {
-                pa.Id,
-                pa.TargetPrice,
-                pa.ConditionType
-            })
             .ToListAsync(cancellationToken);
 
         foreach (var alert in activeAlerts)
@@ -41,18 +33,35 @@ public class AlertEvaluationService : IAlertEvaluationService
                 _ => false
             };
 
-            if (!isMatched)
-                continue;
+            if (isMatched && !alert.IsTriggered)
+            {
+                _logger.LogInformation(
+                    "Triggered alert {AlertId} for {Symbol}. Current price: {CurrentPrice}, target: {TargetPrice}, condition: {ConditionType}",
+                    alert.Id,
+                    message.Symbol,
+                    message.Price,
+                    alert.TargetPrice,
+                    alert.ConditionType);
 
-            _logger.LogInformation(
-                "Matched alert {AlertId} for {Symbol}. Current price: {CurrentPrice}, target: {TargetPrice}, condition: {ConditionType}",
-                alert.Id,
-                message.Symbol,
-                message.Price,
-                alert.TargetPrice,
-                alert.ConditionType);
+                alert.IsTriggered = true;
 
-            // next step: save notification or publish alert-triggered event
+                // later:
+                // publish notification event
+                // save notification history
+            }
+            else if (!isMatched && alert.IsTriggered)
+            {
+                _logger.LogInformation(
+                    "Reset alert {AlertId} for {Symbol}. Current price: {CurrentPrice} no longer matches target {TargetPrice}",
+                    alert.Id,
+                    message.Symbol,
+                    message.Price,
+                    alert.TargetPrice);
+
+                alert.IsTriggered = false;
+            }
         }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }

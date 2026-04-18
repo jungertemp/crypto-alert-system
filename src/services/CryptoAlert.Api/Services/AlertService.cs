@@ -2,13 +2,15 @@ using CryptoAlert.Api.Models.Requests;
 using CryptoAlert.Api.Models.Responses;
 using CryptoAlert.Database;
 using CryptoAlert.Database.Entities;
-
 using Microsoft.EntityFrameworkCore;
 
 namespace CryptoAlert.Api.Services;
 
 public class AlertService : IAlertService
 {
+    private static readonly Guid DemoUserId =
+        Guid.Parse("11111111-1111-1111-1111-111111111111");
+
     private readonly CryptoAlertDbContext _dbContext;
 
     public AlertService(CryptoAlertDbContext dbContext)
@@ -20,11 +22,13 @@ public class AlertService : IAlertService
     {
         var entity = new PriceAlert
         {
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
+            UserId = DemoUserId,
+            AssetId = request.AssetId,
             Symbol = request.Symbol.Trim().ToUpperInvariant(),
             TargetPrice = request.TargetPrice,
             ConditionType = request.ConditionType,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
         };
 
         _dbContext.PriceAlerts.Add(entity);
@@ -36,54 +40,60 @@ public class AlertService : IAlertService
     public async Task<AlertResponse?> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
         return await _dbContext.PriceAlerts
-            .Where(x => x.Id == id)
+            .AsNoTracking()
+            .Where(x => x.Id == id && x.UserId == DemoUserId)
             .Select(x => new AlertResponse
             {
                 Id = x.Id,
+                AssetId = x.AssetId,
                 Symbol = x.Symbol,
                 TargetPrice = x.TargetPrice,
                 ConditionType = x.ConditionType,
                 IsActive = x.IsActive,
                 CreatedAt = x.CreatedAt
-            }).FirstOrDefaultAsync(cancellationToken);
+            })
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<AlertResponse>> GetAllAsync(CancellationToken cancellationToken)
     {
         var collection = await _dbContext.PriceAlerts
-            .Where(x => x.IsActive)
+            .AsNoTracking()
+            .Where(x => x.UserId == DemoUserId && x.IsActive)
+            .OrderByDescending(x => x.CreatedAt)
             .Select(x => new AlertResponse
             {
                 Id = x.Id,
+                AssetId = x.AssetId,
                 Symbol = x.Symbol,
                 TargetPrice = x.TargetPrice,
                 ConditionType = x.ConditionType,
                 IsActive = x.IsActive,
                 CreatedAt = x.CreatedAt
-            }).ToListAsync(cancellationToken);
-        
+            })
+            .ToListAsync(cancellationToken);
+
         return collection;
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken)
     {
-        var alterEntity = await _dbContext.PriceAlerts.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-        
-        if (alterEntity == null)
-        {
+        var alertEntity = await _dbContext.PriceAlerts
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == DemoUserId, cancellationToken);
+
+        if (alertEntity is null)
             return false;
-        }
-        
-        _dbContext.PriceAlerts.Remove(alterEntity);
+
+        _dbContext.PriceAlerts.Remove(alertEntity);
         await _dbContext.SaveChangesAsync(cancellationToken);
-        
+
         return true;
     }
 
     public async Task<AlertResponse?> DeactivateAsync(int id, CancellationToken cancellationToken)
     {
         var entity = await _dbContext.PriceAlerts
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == DemoUserId, cancellationToken);
 
         if (entity is null)
             return null;
@@ -103,6 +113,7 @@ public class AlertService : IAlertService
         return new AlertResponse
         {
             Id = entity.Id,
+            AssetId = entity.AssetId,
             Symbol = entity.Symbol,
             TargetPrice = entity.TargetPrice,
             ConditionType = entity.ConditionType,

@@ -4,6 +4,7 @@ using CryptoAlert.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CryptoAlert.Database.Migrations
 {
     [DbContext(typeof(CryptoAlertDbContext))]
-    partial class CryptoAlertDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260418115711_AddIsTriggeredToPriceAlert")]
+    partial class AddIsTriggeredToPriceAlert
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
