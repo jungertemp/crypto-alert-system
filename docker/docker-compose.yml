@@ -1,8 +1,7 @@
-version: '3.9'
-
 services:
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: cryptoalert-mssql
     platform: linux/amd64
     environment:
       ACCEPT_EULA: "Y"
@@ -16,8 +15,55 @@ services:
     image: rabbitmq:3-management
     container_name: cryptoalert-rabbitmq
     ports:
-      - "5672:5672"   # app connection
-      - "15672:15672" # UI
+      - "5672:5672"
+      - "15672:15672"
+
+  api:
+    build:
+      context: ..
+      dockerfile: src/services/CryptoAlert.Api/Dockerfile
+    container_name: cryptoalert-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mssql
+    restart: unless-stopped
+
+  pricecollector:
+    build:
+      context: ..
+      dockerfile: src/services/CryptoAlert.PriceCollector/Dockerfile
+    container_name: cryptoalert-pricecollector
+    environment:
+      DOTNET_ENVIRONMENT: Docker
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
+
+  notifications:
+    build:
+      context: ..
+      dockerfile: src/services/CryptoAlert.Notifications/Dockerfile
+    container_name: cryptoalert-notifications
+    environment:
+      DOTNET_ENVIRONMENT: Docker
+    depends_on:
+      - rabbitmq
+      - mssql
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
+    container_name: cryptoalert-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: unless-stopped
 
 volumes:
   mssql_data:

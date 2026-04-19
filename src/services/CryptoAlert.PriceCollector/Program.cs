@@ -1,6 +1,7 @@
 using CryptoAlert.PriceCollector.Options;
 using CryptoAlert.PriceCollector.Services;
 using CryptoAlert.PriceCollector.Workers;
+using CryptoAlert.SharedKernel.Options;
 
 using Microsoft.Extensions.Options;
 

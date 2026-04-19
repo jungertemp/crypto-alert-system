@@ -4,25 +4,40 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<CryptoAlertDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddScoped<IAlertService, AlertService>();
-builder.Services.AddScoped<IPriceHistoryQueryService, PriceHistoryQueryService>();
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("frontend", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173", "http://localhost:3000")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                       ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
+
+builder.Services.AddDbContext<CryptoAlertDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+builder.Services.AddScoped<IAlertService, AlertService>();
+builder.Services.AddScoped<IPriceHistoryQueryService, PriceHistoryQueryService>();
+
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
-app.UseHttpsRedirection();
+app.UseCors("frontend");
+
+// disable this for Docker HTTP setup for now
+// app.UseHttpsRedirection();
+
 app.UseAuthorization();
 app.MapControllers();
 

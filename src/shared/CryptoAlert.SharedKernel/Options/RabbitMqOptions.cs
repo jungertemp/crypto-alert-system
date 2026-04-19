@@ -1,4 +1,4 @@
-namespace CryptoAlert.PriceCollector.Options;
+namespace CryptoAlert.SharedKernel.Options;
 
 public class RabbitMqOptions
 {

@@ -16,6 +16,5 @@
     <ProjectReference Include="..\..\shared\CryptoAlert.Contracts\CryptoAlert.Contracts.csproj" />
     <ProjectReference Include="..\..\shared\CryptoAlert.SharedKernel\CryptoAlert.SharedKernel.csproj" />
     <ProjectReference Include="..\..\persistence\CryptoAlert.Database\CryptoAlert.Database.csproj" />
-    <ProjectReference Include="..\CryptoAlert.PriceCollector\CryptoAlert.PriceCollector.csproj" />
   </ItemGroup>
 </Project>

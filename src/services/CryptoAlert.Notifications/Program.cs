@@ -1,7 +1,8 @@
 using CryptoAlert.Database;
 using CryptoAlert.Notifications.Services;
 using CryptoAlert.Notifications.Workers;
-using CryptoAlert.PriceCollector.Options;
+using CryptoAlert.SharedKernel.Options;
+
 using Microsoft.EntityFrameworkCore;
 
 var builder = Host.CreateApplicationBuilder(args);
