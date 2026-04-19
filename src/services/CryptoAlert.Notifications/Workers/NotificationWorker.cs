@@ -3,7 +3,8 @@ using System.Text.Json;
 using CryptoAlert.Contracts.Events;
 using CryptoAlert.Database.Entities;
 using CryptoAlert.Notifications.Services;
-using CryptoAlert.PriceCollector.Options;
+using CryptoAlert.SharedKernel.Options;
+
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
